@@ -6,6 +6,7 @@
       <div id="singleimage-title-next" @click="changeImage(1)">Next</div>
     </div>
     <div id="singleimage-image"></div>
+    <div id="singleimage-text"></div>
     <div id="singleimage-items">
       <div
         v-for="typeName in currentTypeOrder"
@@ -33,12 +34,14 @@ export default {
   data() {
     return {
       results: [{ name: "" }],
+      //index: 36,
       index: 0,
       rand: 1,
       currentTypeOrder: [],
       maxCount: 0,
       itemStat: {},
-      currentItem: null
+      currentItem: null,
+      texts: null
     };
   },
   computed: {
@@ -56,7 +59,19 @@ export default {
       self.init();
     }
   },
-  mounted() {},
+  mounted() {
+    let self = this;
+    d3.csv("data/captions.csv").then(data => {
+      let texts = {};
+      for (let i in data) {
+        let name = data[i].file_name;
+        let text = data[i].caption;
+        texts[name] = text;
+      }
+      self.texts = texts;
+      //self.init();
+    });
+  },
   methods: {
     ...mapActions(["updateCurrentResults"]),
     changeImage(val) {
@@ -105,10 +120,48 @@ export default {
     },
     init() {
       let self = this;
-      if (self.currentResults == null || self.typeNames == null) return;
+      if (
+        self.currentResults == null ||
+        self.typeNames == null ||
+        self.texts == null
+      )
+        return;
       self.countItems();
+      self.addText();
       self.drawImage();
       self.drawItems();
+    },
+    addText() {
+      let self = this;
+      let results = self.results;
+      let index = self.index;
+      let name = results[index].name;
+      let html = "";
+      let text = self.texts[name];
+      let items = self.typeNames;
+      if (text != null) {
+        let words = text.split(" ");
+        for (let i in words) {
+          let word = words[i].toLowerCase();
+          let flag = false;
+          for (let j in items) {
+            let item = items[j].toLowerCase();
+            if (
+              (item.indexOf(word) >= 0 && word.length >= 3) ||
+              word.indexOf(item) >= 0
+            ) {
+              flag = true;
+              break;
+            }
+          }
+          if (word == "not" || word == "make") flag = false;
+          if (flag) html += "<span style='color:red;'>" + words[i] + "</span> ";
+          else html += words[i] + " ";
+        }
+      }
+      let div = document.getElementById("singleimage-text");
+      if (div == null) return;
+      div.innerHTML = html;
     },
     drawImage() {
       let self = this;
@@ -390,7 +443,15 @@ export default {
     position: absolute;
     width: 100%;
     top: 5%;
-    height: 40%;
+    height: 30%;
+  }
+
+  #singleimage-text {
+    position: absolute;
+    width: 100%;
+    top: 35%;
+    height: 10%;
+    text-align: left;
   }
 
   #singleimage-items {

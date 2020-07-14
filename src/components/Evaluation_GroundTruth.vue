@@ -17,14 +17,14 @@ export default {
     };
   },
   computed: {
-    ...mapState(["globalResults", "currentResults", "typeNames"])
+    ...mapState(["globalResults", "groundTruth", "typeNames"])
   },
   watch: {
     globalResults(val) {
       let self = this;
       self.init();
     },
-    currentResults(val) {
+    groundTruth(val) {
       let self = this;
       self.init();
     },
@@ -44,12 +44,12 @@ export default {
       let self = this;
       if (
         self.globalResults == null ||
-        self.currentResults == null ||
+        self.groundTruth == null ||
         self.typeNames == null
       )
         return;
       let typeNames = self.typeNames;
-      let currentResults = self.currentResults;
+      let groundTruth = self.groundTruth;
       let globalResults = self.globalResults;
 
       let typeStat = {};
@@ -63,25 +63,24 @@ export default {
         }
         typeStat[item][x].push(w);
       };
-      for (let i in currentResults) {
-        let current = currentResults[i].value,
+      for (let i in groundTruth) {
+        let gt = groundTruth[i].value,
           global = globalResults[i].value;
         for (let j in global) {
           let t = global[j];
-          let tmp = current.filter(d => {
-            return d.Label == t.Label;
-          });
-          if (tmp.length > 0) addStat(t.Label, "correct", parseFloat(t.Score));
+          if (gt.indexOf(t.Label) >= 0)
+            addStat(t.Label, "correct", parseFloat(t.Score));
           else addStat(t.Label, "wrong", parseFloat(t.Score));
         }
-        for (let j in current) {
-          let t = current[j];
+        for (let j in gt) {
+          let t = gt[j];
           let tmp = global.filter(d => {
-            return d.Label == t.Label;
+            return d.Label == t;
           });
-          if (tmp.length == 0) addStat(t.Label, "missing", globalResults[i]);
+          if (tmp.length == 0) addStat(t, "missing", globalResults[i]);
         }
       }
+      console.log(typeStat);
       self.typeStat = typeStat;
     },
     drawScatterplot() {
@@ -131,7 +130,7 @@ export default {
         })
         .attr("cx", d => {
           if (d.value["correct"].length + d.value["wrong"].length == 0) {
-            xx += 20;
+            xx += 15;
             return xx;
           } else
             return xscale(
@@ -233,8 +232,6 @@ export default {
       if (item != "" && typeStat[item] == null) item = "";
       let sty = width;
       if (sty > height) sty = height * 0.5;
-      sty -= 10;
-      sty += 10;
       let h = (height - sty) / 2;
       let correct = new Array();
       let wrong = new Array();
