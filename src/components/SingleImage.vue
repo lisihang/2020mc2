@@ -14,7 +14,7 @@
         :id="'singleimage-items-' + typeName"
         class="singleimage-items-item"
       >
-        <div class="singleimage-items-item-text">{{typeName}}</div>
+        <div class="singleimage-items-item-text">{{ typeName }}</div>
         <div class="singleimage-items-item-left"></div>
         <div class="singleimage-items-item-middle"></div>
         <div class="singleimage-items-item-right"></div>

@@ -15,8 +15,8 @@
 <script>
 import Overview from "@/components/Overview";
 import SingleImage from "@/components/SingleImage";
-//import Evaluation from "@/components/Evaluation";
-import Evaluation from "@/components/Evaluation_GroundTruth";
+import Evaluation from "@/components/Evaluation";
+//import Evaluation from "@/components/Evaluation_GroundTruth";
 import $ from "jquery";
 import * as d3 from "d3";
 import { mapState, mapActions } from "vuex";

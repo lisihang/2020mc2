@@ -28,7 +28,6 @@
 <script>
 import $ from "jquery";
 import * as d3 from "d3";
-//let d3Lasso = require("@/assets/d3-lasso.min.js");
 import * as d3Lasso from "d3-lasso";
 import { mapState, mapActions } from "vuex";
 

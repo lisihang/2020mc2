@@ -60,6 +60,7 @@ export default {
           typeStat[item]["correct"] = new Array();
           typeStat[item]["wrong"] = new Array();
           typeStat[item]["missing"] = new Array();
+          typeStat[item]["iou"] = new Array();
         }
         typeStat[item][x].push(w);
       };
@@ -71,8 +72,30 @@ export default {
           let tmp = current.filter(d => {
             return d.Label == t.Label;
           });
-          if (tmp.length > 0) addStat(t.Label, "correct", parseFloat(t.Score));
-          else addStat(t.Label, "wrong", parseFloat(t.Score));
+          if (tmp.length > 0) {
+            addStat(t.Label, "correct", parseFloat(t.Score));
+            let xmin1 = parseFloat(t.x),
+              xmax1 = parseFloat(t.x) + parseFloat(t.Width);
+            let ymin1 = parseFloat(t.y),
+              ymax1 = parseFloat(t.y) + parseFloat(t.Height);
+            let xmin2 = parseFloat(tmp[0].x),
+              xmax2 = parseFloat(tmp[0].x) + parseFloat(tmp[0].Width);
+            let ymin2 = parseFloat(tmp[0].y),
+              ymax2 = parseFloat(tmp[0].y) + parseFloat(tmp[0].Height);
+            let xmin = Math.max(xmin1, xmin2);
+            let xmax = Math.min(xmax1, xmax2);
+            let ymin = Math.max(ymin1, ymin2);
+            let ymax = Math.min(ymax1, ymax2);
+            let s;
+            if (xmin > xmax || ymin > ymax) s = 0;
+            else s = (xmax - xmin) * (ymax - ymin);
+            let iou =
+              s /
+              (parseFloat(t.Width) * parseFloat(t.Height) +
+                parseFloat(tmp[0].Width) * parseFloat(tmp[0].Height) -
+                s);
+            if (!isNaN(iou)) addStat(t.Label, "iou", iou);
+          } else addStat(t.Label, "wrong", parseFloat(t.Score));
         }
         for (let j in current) {
           let t = current[j];
@@ -235,17 +258,20 @@ export default {
       if (sty > height) sty = height * 0.5;
       sty -= 10;
       sty += 10;
-      let h = (height - sty) / 2;
+      let h = (height - sty) / 3;
       let correct = new Array();
       let wrong = new Array();
+      let iou = new Array();
       if (item == "")
         for (let i in typeStat) {
           correct = correct.concat(typeStat[i]["correct"]);
           wrong = wrong.concat(typeStat[i]["wrong"]);
+          iou = iou.concat(typeStat[i]["iou"]);
         }
       else {
         correct = typeStat[item]["correct"];
         wrong = typeStat[item]["wrong"];
+        iou = typeStat[item]["iou"];
       }
 
       // correct
@@ -292,7 +318,8 @@ export default {
             return;
           }
           return e;
-        });
+        })
+        .ticks(4);
       group
         .append("g")
         .attr("transform", "translate(0, " + (sty + h - padding.bottom) + ")")
@@ -359,7 +386,8 @@ export default {
             return;
           }
           return e;
-        });
+        })
+        .ticks(4);
       group
         .append("g")
         .attr(
@@ -383,6 +411,77 @@ export default {
         .append("text")
         .attr("x", width - padding.right * 3)
         .attr("y", sty + h + h - padding.bottom * 1.2)
+        .text("Score");
+
+      // iou
+      stat = new Array();
+      stat.push([0, 0]);
+      mx = 0;
+      for (let i = 0; i < 1.0; i += pace) {
+        let count = iou.filter(d => {
+          return d >= i && d <= i + pace;
+        }).length;
+        stat.push([i + pace * 0.5, count]);
+        mx = Math.max(mx, count);
+      }
+      stat.push([1, 0]);
+      xscale = d3
+        .scaleLinear()
+        .domain([0, 1])
+        .range([padding.left, width - padding.right]);
+      yscale = d3
+        .scaleLinear()
+        .domain([0, mx])
+        .range([sty + h + h + h - padding.bottom, sty + h + h + padding.top]);
+      line = d3
+        .line()
+        .x(d => {
+          return xscale(d[0]);
+        })
+        .y(d => {
+          return yscale(d[1]);
+        })
+        .curve(d3.curveMonotoneX);
+      group
+        .append("g")
+        .append("path")
+        .attr("d", line(stat))
+        .attr("fill", "orangered")
+        .attr("stroke-width", 0);
+      xaxis = d3.axisBottom().scale(xscale);
+      yaxis = d3
+        .axisLeft()
+        .scale(yscale)
+        .tickFormat(function(e) {
+          if (Math.floor(e) != e) {
+            return;
+          }
+          return e;
+        })
+        .ticks(4);
+      group
+        .append("g")
+        .attr(
+          "transform",
+          "translate(0, " + (sty + h + h + h - padding.bottom) + ")"
+        )
+        .call(xaxis);
+      group
+        .append("g")
+        .attr("transform", "translate(" + padding.left + ", 0)")
+        .call(yaxis);
+      group
+        .append("g")
+        .append("text")
+        .text("IoU")
+        .attr("x", 5)
+        .attr("y", sty + h + h + padding.top * 0.5)
+        .style("dominant-baseline", "middle");
+      group
+        .append("g")
+        .append("text")
+        .attr("x", width - padding.right * 3)
+        .attr("y", sty + h + h + h - padding.bottom * 1.2)
         .text("Score");
     }
   }
